@@ -1,6 +1,12 @@
 var Koa = require('koa')
+var config = require('./config')
+var router = require('./routes/signup')
+var mongoose = require('mongoose')
+
+mongoose.Promise = global.Promise;
+mongoose.connect(config.mongodb)
+
 var app = new Koa()
-var router = require('./routes/router')
 
 app.use(router.routes())
 

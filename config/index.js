@@ -1,5 +1,5 @@
 let config = {
-  mongodb: 'mongodb://localhost:27107/reactblog'
+  mongodb: 'mongodb://localhost:27017/reactblog'
 }
 
-export default config
+module.exports =  config
