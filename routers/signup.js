@@ -28,8 +28,7 @@ router.put('/signup', async (ctx,next) => {
     avatar,
     createTime
   })
-  
-  await next()
+
   let createdUser = await user.save()
     .catch(e => {
       if (e.message.match('E11000 duplicate key')) {
