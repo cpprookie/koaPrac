@@ -1,11 +1,14 @@
 var postModel = require('../models/post')
+var History = require('../models/history')
+var userModel = require('../models/user')
 var parse = require('co-body')
 var router = require('koa-router')()
 
+// 未登陆用户访问某一文章
 router.get('/post/:id', async ctx => {
   const id = ctx.params.id
   const opts = await postModel.find({_id: id})
-                              .populate('author','userName')
+                              .populate('author','userName','avatar')
                               .catch(e => ctx.throw(500, 'internal server response'))
   const post = opts[0]
   if (!post) {
@@ -18,6 +21,26 @@ router.get('/post/:id', async ctx => {
     post
   }
 })
+  // 系统内用户访问某一文章
+  .get('/user/:userID/post/:postID', async ctx => {
+    const userID = ctx.params.userID
+    const postID = ctx.params.postID
+    let userOpts = await userModel.find({_id: userID}).catch(e => ctx.throw(500, e.message))
+    let postOpts = await postModel.find({_id: postID}).catch(e => ctx.throw(500, e.message))
+    if(userOpts[0] && postOpts[0]) {
+      const history = new History ({
+        post: postID,
+        user: userID,
+        lastViewTime: new Date()
+      })
+      await history.save().catch(e => ctx.throw(500, e.message))
+      console.log('store user browsing history success')
+      ctx.body={
+        success: true,
+        message: 'store user browsing history success'
+      }
+    }
+  })
   .put('/user/:userID/post', async ctx => {
     const body = await parse.json(ctx.request)
     const title = body.post.title

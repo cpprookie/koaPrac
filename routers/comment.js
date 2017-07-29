@@ -4,9 +4,12 @@ var parse = require('co-body')
 var router = require('koa-router')()
 
 router.get('/post/:id/comments', async ctx => {
+  /**
+   * @todo how to  get comment Time like X mins ago
+   */
   const id = ctx.params.id
   let result = await commentModel.find({post: id})
-                               .populate('author','userName')
+                               .populate('author','userName','avatar')
                                .sort({createTime: -1})
                                .catch(e => ctx.throw(500, e.message))
   console.log(`get comments for post: ${id} success`)
