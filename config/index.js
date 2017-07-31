@@ -1,5 +1,10 @@
 let config = {
-  mongodb: 'mongodb://localhost:27017/reactblog'
+  mongodb: 'mongodb://127.0.0.1:27017/reactblog',
+  session: {
+    maxAge: 86400000,
+    overwrite: true,
+    httpOnly: true
+  }
 }
 
 module.exports =  config

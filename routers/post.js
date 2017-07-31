@@ -8,8 +8,8 @@ var router = require('koa-router')()
 router.get('/post/:id', async ctx => {
   const id = ctx.params.id
   const opts = await postModel.find({_id: id})
-                              .populate('author','userName','avatar')
-                              .catch(e => ctx.throw(500, 'internal server response'))
+                              .populate({path:'author',select:['userName','avatar']})
+                              .catch(e => ctx.throw(500, e.message))
   const post = opts[0]
   if (!post) {
     ctx.throw(404, 'unexit post')
@@ -21,6 +21,26 @@ router.get('/post/:id', async ctx => {
     post
   }
 })
+  .get('/posts', async ctx => {
+    const pageOptions = {
+      page: ctx.query.page || 0,
+      limit: 20
+    }
+    const totalCount = await postModel.count({}).catch(e => ctx.throw(500, e.message))
+    const totalPage = Math.ceil(totalCount / 20)
+    const postList = await postModel.find()
+                                    .sort({lastEditTime: -1})
+                                    .skip(pageOptions.page*20)
+                                    .limit(20)
+                                    .populate('author', 'userName')
+                                    .catch(e => ctx.throw(500, e.message))
+    ctx.body = {
+      success: true,
+      message: `get posts on page ${ctx.query.page}`,
+      totalPage,
+      postList
+    }
+  }) 
   // 系统内用户访问某一文章
   .get('/user/:userID/post/:postID', async ctx => {
     const userID = ctx.params.userID
@@ -55,11 +75,10 @@ router.get('/post/:id', async ctx => {
     /**
      * @todo check user in session or not!
      */
-    let opt = await postModel.find({author: userID}, {title: title}).catch(e=> ctx.throw(500, 'internal server response'))
-    if (opt[0]) {
+    let opts = await postModel.find({author: userID ,title: title}).catch(e=> ctx.throw(500, e.message))
+    if (opts.length) {
       ctx.throw(400, 'different articles with same title and same author ')
     }
-
     const author = userID
     const createTime = lastEditTime = new Date
     const newPost = new postModel({

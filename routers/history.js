@@ -6,6 +6,7 @@ router.get('/user/:userID/history', async ctx => {
   console.log(ctx.query)
   const all = ctx.query.all
   let result = await History.find({user: user})
+                            .populate('post','title')
                             .sort({lastViewTime: -1})
                             .catch(e => ctx.throw(e.message))
   if (!result) {
@@ -22,12 +23,6 @@ router.get('/user/:userID/history', async ctx => {
     sucess: true,
     message: 'get user history success',
     history: result
-  }
-})
-
-router.get('/history', async ctx => {
-  ctx.body={
-    message: 'hello history'
   }
 })
 

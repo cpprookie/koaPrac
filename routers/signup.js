@@ -40,9 +40,13 @@ router.put('/signup', async (ctx,next) => {
 
   console.log('create user success!')
   ctx.body = {
-    userID: createdUser._id,
-    userName: createdUser.userName,
-    avatar: createdUser.avatar
+    success: true,
+    message: 'create user success!',
+    user: {
+      userID: createdUser._id,
+      userName: createdUser.userName,
+      avatar: createdUser.avatar
+    }
   }
 })
 
