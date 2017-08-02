@@ -1,24 +1,48 @@
 var postModel = require('../models/post')
 var History = require('../models/history')
 var userModel = require('../models/user')
+var commentModel = require('../models/comment')
+var getCommentsCount = require('../middleware/getCommentsCount')
 var parse = require('co-body')
 var router = require('koa-router')()
 
-// 未登陆用户访问某一文章
+
+
+// 访问文章
 router.get('/post/:id', async ctx => {
   const id = ctx.params.id
   const opts = await postModel.find({_id: id})
                               .populate({path:'author',select:['userName','avatar']})
                               .catch(e => ctx.throw(500, e.message))
-  const post = opts[0]
+  let post = opts[0]
   if (!post) {
     ctx.throw(404, 'unexit post')
   }
+  const comments = await getCommentsCount(id)
   console.log('find post success')
+
+  // add comment to query result 
+  const result = Object.assign({}, post._doc, {comments})
+  /**
+   * @todo 此处应在session里查询用户是否登陆
+   */
+  if (ctx.params.userID) {
+    const userOpts = await userModel.find({_id: ctx.params.userID})
+                                    .catch(e => ctx.throw(500, e.message))
+    if(userOpts[0]) {
+      const history = new History ({
+        post: postID,
+        user: userID,
+        lastViewTime: new Date()
+      })
+      await history.save().catch(e => ctx.throw(500, e.message))
+    }
+  }
+  
   ctx.body = {
     success: true,
     message: 'find post success',
-    post
+    post: result
   }
 })
   .get('/posts', async ctx => {
@@ -34,33 +58,21 @@ router.get('/post/:id', async ctx => {
                                     .limit(20)
                                     .populate('author', 'userName')
                                     .catch(e => ctx.throw(500, e.message))
+    // https://stackoverflow.com/questions/40140149/use-async-await-with-array-map
+    const results = await Promise.all(postList.map(async item => {
+      let comments = await getCommentsCount(item._id) 
+      return Object.assign({}, item._doc, {comments})
+    }))
+
+    console.log(results)
     ctx.body = {
       success: true,
       message: `get posts on page ${ctx.query.page}`,
       totalPage,
-      postList
+      postList: results
     }
   }) 
-  // 系统内用户访问某一文章
-  .get('/user/:userID/post/:postID', async ctx => {
-    const userID = ctx.params.userID
-    const postID = ctx.params.postID
-    let userOpts = await userModel.find({_id: userID}).catch(e => ctx.throw(500, e.message))
-    let postOpts = await postModel.find({_id: postID}).catch(e => ctx.throw(500, e.message))
-    if(userOpts[0] && postOpts[0]) {
-      const history = new History ({
-        post: postID,
-        user: userID,
-        lastViewTime: new Date()
-      })
-      await history.save().catch(e => ctx.throw(500, e.message))
-      console.log('store user browsing history success')
-      ctx.body={
-        success: true,
-        message: 'store user browsing history success'
-      }
-    }
-  })
+  // 发表文章
   .put('/user/:userID/post', async ctx => {
     const body = await parse.json(ctx.request)
     const title = body.post.title
@@ -134,15 +146,14 @@ router.get('/post/:id', async ctx => {
     if (!post) {
       ctx.throw(400, 'non-exit post')
     }
-    // for (let key in post.author) [
-    //   console.log(`${key}------>${post.author[key]}`)
-    // ]
-    // typeof(post.author) --> Object
     if(post.author.toString() !== userID) {
       ctx.throw(403, 'No authration')
     }
 
-    const deletePost = await postModel.deleteOne({_id: postID}).catch(e => ctx.throw(500, 'internal server response'))
+    await postModel.deleteOne({_id: postID})
+                   .catch(e => ctx.throw(500, 'internal server response'))
+    await commentModel.deleteMany({post: postID})
+                      .catch(e => ctx.throw(500, 'internal server response'))
     console.log('delete post success')
     ctx.body = {
       success: true,

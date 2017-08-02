@@ -1,5 +1,6 @@
 var commentModel = require('../models/comment')
 var postModel = require('../models/post')
+var getCommentsCount = require('../middleware/getCommentsCount')
 var parse = require('co-body')
 var router = require('koa-router')()
 
@@ -8,15 +9,21 @@ router.get('/post/:id/comments', async ctx => {
    * @todo how to  get comment Time like X mins ago
    */
   const id = ctx.params.id
+  const pageOptions = {
+    page: ctx.query.page || 0
+  }
+  const totalCounts = await getCommentsCount(id)
   let result = await commentModel.find({post: id})
-                               .populate('author','userName','avatar')
+                               .populate('author',['userName','avatar'])
                                .sort({createTime: -1})
+                               .skip(pageOptions.page*20)
+                               .limit(20)
                                .catch(e => ctx.throw(500, e.message))
   console.log(`get comments for post: ${id} success`)
   ctx.body = {
     success: true,
     message: `get comments for post: ${id} success`,
-    comments: result
+    comments: Object.assign({}, result, {totalCounts})
   }
   })
   // create comment
