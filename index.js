@@ -7,14 +7,16 @@ var post = require('./routers/post')
 var history = require('./routers/history')
 var comment = require('./routers/comment')
 var mongoose = require('mongoose')
-// var session = require('koa-session')
+var session = require('koa-session')
 
 mongoose.Promise = global.Promise;
 mongoose.connect(config.mongodb)
 
 var app = new Koa()
+app.keys = ['This is a secret', 'Another secret']
 
-// app.use(session(config.session),app)
+app.use(session(config.session,app))
+
 // https://github.com/alexmingoia/koa-router/issues/125
 app.use(signup)
 app.use(signin)

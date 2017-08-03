@@ -25,12 +25,18 @@ router.post('/signin', async (ctx,next) => {
     ctx.throw(403, 'incorrect password')
   }
   console.log('signin success')
+  // ctx.session.userList = ctx.session.userList || [] 
+  // ctx.session.userList.push(userName)
+  // ctx.cookies.set('reactblog', null)
+  // ctx.cookies.set('reactblog.sig', null)
+  console.log(ctx.cookies.get('reactblog'))
+  console.log(ctx.session)
   ctx.body = {
     success: true,
     message: 'signin success',
     user: {
       userName: user.userName,
-      userID: user.password,
+      userID: user._id,
       avatar: user.avatar
     }
   }

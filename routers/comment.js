@@ -1,4 +1,5 @@
 var commentModel = require('../models/comment')
+var mongoose = require('mongoose')
 var postModel = require('../models/post')
 var getCommentsCount = require('../middleware/getCommentsCount')
 var parse = require('co-body')
@@ -13,18 +14,34 @@ router.get('/post/:id/comments', async ctx => {
     page: ctx.query.page || 0
   }
   const totalCounts = await getCommentsCount(id)
-  let result = await commentModel.find({post: id})
-                               .populate('author',['userName','avatar'])
-                               .sort({createTime: -1})
-                               .skip(pageOptions.page*20)
-                               .limit(20)
-                               .catch(e => ctx.throw(500, e.message))
+  // let result = await commentModel.find({post: id})
+  //                              .populate('author',['userName','avatar'])
+  //                               .sort({createTime: -1})
+  //                              .skip(pageOptions.page*20)
+  //                              .limit(20)
+  //                              .catch(e => ctx.throw(500, e.message))
+  
+const result = await commentModel.aggregate([
+    {$match: {post: mongoose.Types.ObjectId(id)}},
+    {$lookup: {
+      from: 'usermodels',
+      localField: 'author',
+      foreignField: '_id',
+      as: 'author'}},
+    {$project: {
+      post: 1, 'author._id': 1, 'author.userName': 1, 'author.avatar': 1, 
+      content: 1, timeago: {$subtract: [new Date, new Date('createTime')]} 
+    }},
+    {$sort: {createTime: -1}},
+    {$skip: pageOptions.page*20},
+    {$limit: 20}
+  ])
   console.log(`get comments for post: ${id} success`)
-  ctx.body = {
-    success: true,
-    message: `get comments for post: ${id} success`,
-    comments: Object.assign({}, result, {totalCounts})
-  }
+    ctx.body = {
+      success: true,
+      message: `get comments for post: ${id} success`,
+      comments: Object.assign({}, result, {totalCounts})
+    }
   })
   // create comment
   .put('/post/:id/comment', async ctx => {
