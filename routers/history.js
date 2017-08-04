@@ -3,7 +3,6 @@ var router = require('koa-router')()
 
 router.get('/user/:userID/history', async ctx => {
   const user = ctx.params.userID
-  console.log(ctx.query)
   const all = ctx.query.all
   let result = await History.find({user: user})
                             .populate('post','title')

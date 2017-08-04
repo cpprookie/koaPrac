@@ -5,7 +5,7 @@ var commentModel = require('../models/comment')
 var getCommentsCount = require('../middleware/getCommentsCount')
 var parse = require('co-body')
 var router = require('koa-router')()
-
+var checkUserLogin = require('../middleware/checkUserLogin')
 
 
 // 访问文章
@@ -19,24 +19,20 @@ router.get('/post/:id', async ctx => {
     ctx.throw(404, 'unexit post')
   }
   const comments = await getCommentsCount(id)
-  console.log('find post success')
 
+  console.log('find post success')
   // add comment to query result 
   const result = Object.assign({}, post._doc, {comments})
-  /**
-   * @todo 此处应在session里查询用户是否登陆
-   */
-  if (ctx.params.userID) {
-    const userOpts = await userModel.find({_id: ctx.params.userID})
-                                    .catch(e => ctx.throw(500, e.message))
-    if(userOpts[0]) {
-      const history = new History ({
-        post: postID,
-        user: userID,
-        lastViewTime: new Date()
-      })
-      await history.save().catch(e => ctx.throw(500, e.message))
-    }
+  const userID = ctx.query.userID 
+  // if log user visit post, add record in history 
+  if (userID && checkUserLogin.call(ctx, userID)) {
+    const history = new History ({
+      post: id,
+      user: userID,
+      lastViewTime: new Date()
+    })
+    let test = await history.save().catch(e => ctx.throw(500, e.message))
+    console.log(test)
   }
   
   ctx.body = {
@@ -84,12 +80,12 @@ router.get('/post/:id', async ctx => {
     if (!content) {
       ctx.throw(400, 'empty content')
     }
-    /**
-     * @todo check user in session or not!
-     */
     let opts = await postModel.find({author: userID ,title: title}).catch(e=> ctx.throw(500, e.message))
     if (opts.length) {
       ctx.throw(400, 'different articles with same title and same author ')
+    }
+    if(!checkUserLogin.call(ctx, userID)) {
+      ctx.throw(400, 'illegal request, user is not logged in!')
     }
     const author = userID
     const createTime = lastEditTime = new Date
@@ -125,6 +121,9 @@ router.get('/post/:id', async ctx => {
     if (!editPost.title || !editPost.content) {
       ctx.throw(400, 'empty title or content')
     }
+    if(!checkUserLogin.call(ctx, userID)) {
+      ctx.throw(400, 'illegal request, user is not logged in!')
+    }
     const result = await postModel
                          .findOneAndUpdate({_id: postID},
                            {$set: {title: editPost.title, content: editPost.content, lastEditTime: new Date}}, {new: true})
@@ -149,7 +148,9 @@ router.get('/post/:id', async ctx => {
     if(post.author.toString() !== userID) {
       ctx.throw(403, 'No authration')
     }
-
+    if(!checkUserLogin.call(ctx, userID)) {
+      ctx.throw(400, 'illegal request, user is not logged in!')
+    }
     await postModel.deleteOne({_id: postID})
                    .catch(e => ctx.throw(500, 'internal server response'))
     await commentModel.deleteMany({post: postID})

@@ -2,6 +2,7 @@ var userModel = require('../models/user')
 var sha1 = require('sha1')
 var parse = require('co-body')
 var router = require('koa-router')()
+var checkUserLogin = require('../middleware/checkUserLogin')
 
 router.post('/signin', async (ctx,next) => {
   const body = await parse.json(ctx.request)
@@ -24,13 +25,13 @@ router.post('/signin', async (ctx,next) => {
   if (user.password !== sha1(password)) {
     ctx.throw(403, 'incorrect password')
   }
+  userId = user._id.toString()
+  if(checkUserLogin.call(ctx, userId)) {
+    ctx.throw(400, `${userName} is online!`)
+  }
+  ctx.session.logUserList.push(userId)
+  console.log(ctx.session.logUserList)
   console.log('signin success')
-  // ctx.session.userList = ctx.session.userList || [] 
-  // ctx.session.userList.push(userName)
-  // ctx.cookies.set('reactblog', null)
-  // ctx.cookies.set('reactblog.sig', null)
-  console.log(ctx.cookies.get('reactblog'))
-  console.log(ctx.session)
   ctx.body = {
     success: true,
     message: 'signin success',

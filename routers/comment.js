@@ -4,6 +4,7 @@ var postModel = require('../models/post')
 var getCommentsCount = require('../middleware/getCommentsCount')
 var parse = require('co-body')
 var router = require('koa-router')()
+var checkUserLogin = require('../middleware/checkUserLogin')
 
 router.get('/post/:id/comments', async ctx => {
   /**
@@ -55,6 +56,9 @@ const result = await commentModel.aggregate([
     if (!content) {
       ctx.throw(400, 'invalid comment')
     } 
+    if(!checkUserLogin(ctx, author)) {
+      ctx.throw(400, 'illegal request, user is not logged in!')
+    }
     let createTime = new Date
     let comment = new commentModel({
       post,
@@ -83,6 +87,9 @@ const result = await commentModel.aggregate([
                               .catch(e => ctx.throw(500, e.message))
     if (!opts[0]) {
       ctx.throw(404, 'non-exit comment')
+    }
+    if(!checkUserLogin(ctx, author)) {
+      ctx.throw(400, 'illegal request, user is not logged in!')
     }
     console.log(opts[0])
     let comment = opts[0]
