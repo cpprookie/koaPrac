@@ -96,12 +96,11 @@ router.get('/post/:id', async ctx => {
       createTime,
       lastEditTime
     })
-    const createPost = await newPost.save().catch(e=> ctx.throw(500, 'internal server response'))
+    await newPost.save().catch(e=> ctx.throw(500, 'internal server response'))
     console.log('create post success')
     ctx.body = {
       success: true,
-      message: 'create post success',
-      createPost
+      message: 'create post success'
     }
   })
   .post('/user/:userID/post/:postID', async ctx => {
@@ -124,17 +123,16 @@ router.get('/post/:id', async ctx => {
     if(!checkUserLogin.call(ctx, userID)) {
       ctx.throw(400, 'illegal request, user is not logged in!')
     }
-    const result = await postModel
-                         .findOneAndUpdate({_id: postID},
-                           {$set: {title: editPost.title, content: editPost.content, lastEditTime: new Date}}, {new: true})
-                         .exec()
-                         .catch(e => {ctx.throw(500, e.message)})
+    await postModel
+      .findOneAndUpdate({_id: postID},
+        {$set: {title: editPost.title, content: editPost.content, lastEditTime: new Date}}, {new: true})
+      .exec()
+      .catch(e => {ctx.throw(500, e.message)})
     console.log('edit post success')
     console.log(result)
     ctx.body = {
       success: true,
-      message: "edit post success",
-      result
+      message: "edit post success"
     }
   })
   .delete('/user/:userID/post/:postID', async ctx => {

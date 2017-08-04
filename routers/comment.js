@@ -22,7 +22,7 @@ router.get('/post/:id/comments', async ctx => {
   //                              .limit(20)
   //                              .catch(e => ctx.throw(500, e.message))
   
-const result = await commentModel.aggregate([
+const commentList = await commentModel.aggregate([
     {$match: {post: mongoose.Types.ObjectId(id)}},
     {$lookup: {
       from: 'usermodels',
@@ -31,7 +31,7 @@ const result = await commentModel.aggregate([
       as: 'author'}},
     {$project: {
       post: 1, 'author._id': 1, 'author.userName': 1, 'author.avatar': 1, 
-      content: 1, timeago: {$subtract: [new Date, new Date('createTime')]} 
+      content: 1, timeago: {$subtract: [new Date, "$createTime"]} 
     }},
     {$sort: {createTime: -1}},
     {$skip: pageOptions.page*20},
@@ -41,7 +41,7 @@ const result = await commentModel.aggregate([
     ctx.body = {
       success: true,
       message: `get comments for post: ${id} success`,
-      comments: Object.assign({}, result, {totalCounts})
+      comments: Object.assign({}, commentList, {totalCounts})
     }
   })
   // create comment
@@ -66,13 +66,12 @@ const result = await commentModel.aggregate([
       content,
       createTime
     })
-    const result = await comment.save()
-                                .catch(e => ctx.throw(e.message))
+    const putComment = await comment.save().catch(e => ctx.throw(e.message))
     console.log('create comment success')
     ctx.body = {
       success: true,
       message: 'create comment success',
-      comment: result 
+      comment: putComment
     }
   })
   // remove comment

@@ -14,7 +14,7 @@ router.post('/user/:id/signout', async (ctx,next) => {
   console.log('signout success')
   ctx.body = {
     success: true,
-    message: 'signout success',
+    message: 'signout success'
   }
 })
 
