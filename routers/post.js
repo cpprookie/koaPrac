@@ -31,8 +31,7 @@ router.get('/post/:id', async ctx => {
       user: userID,
       lastViewTime: new Date()
     })
-    let test = await history.save().catch(e => ctx.throw(500, e.message))
-    console.log(test)
+    await history.save().catch(e => ctx.throw(500, e.message))
   }
   
   ctx.body = {
@@ -46,9 +45,14 @@ router.get('/post/:id', async ctx => {
       page: ctx.query.page || 0,
       limit: 20
     }
-    const totalCount = await postModel.count({}).catch(e => ctx.throw(500, e.message))
+    // if  query.author exist, add it as query condition.
+    let query = ctx.query.author ?  {'author': ctx.query.author} : {}
+    const totalCount = await postModel.count(query).catch(e => ctx.throw(500, e.message))
     const totalPage = Math.ceil(totalCount / 20)
-    const postList = await postModel.find()
+    if(pageOptions.page >= totalPage) {
+      ctx.throw(404, 'Not found')
+    }
+    const postList = await postModel.find(query)
                                     .sort({lastEditTime: -1})
                                     .skip(pageOptions.page*20)
                                     .limit(20)
@@ -60,7 +64,7 @@ router.get('/post/:id', async ctx => {
       return Object.assign({}, item._doc, {comments})
     }))
 
-    console.log(results)
+    // console.log(results)
     ctx.body = {
       success: true,
       message: `get posts on page ${ctx.query.page}`,
@@ -129,7 +133,7 @@ router.get('/post/:id', async ctx => {
       .exec()
       .catch(e => {ctx.throw(500, e.message)})
     console.log('edit post success')
-    console.log(result)
+    // console.log(result)
     ctx.body = {
       success: true,
       message: "edit post success"

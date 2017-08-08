@@ -13,13 +13,13 @@ router.get('/user/:userID/history', async ctx => {
   }
   if(all === 'false' && result.length > 6) {
     ctx.body = {
-      sucess: true,
+      success: true,
       message: 'get user history success',
       history: result.slice(0,4)
     }
   }
   ctx.body = {
-    sucess: true,
+    success: true,
     message: 'get user history success',
     history: result
   }

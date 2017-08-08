@@ -45,7 +45,7 @@ router.put('/signup', async (ctx,next) => {
     user: {
       userID: createdUser._id,
       userName: createdUser.userName,
-      avatar: createdUser.avatar
+      avatar: '../public/test.jpg'
     }
   }
 })

@@ -6,23 +6,19 @@ var parse = require('co-body')
 var router = require('koa-router')()
 var checkUserLogin = require('../middleware/checkUserLogin')
 
-router.get('/post/:id/comments', async ctx => {
+router.get('/post/:id/comment', async ctx => {
   /**
    * @todo how to  get comment Time like X mins ago
    */
   const id = ctx.params.id
-  const pageOptions = {
-    page: ctx.query.page || 0
+  const currentPage = ctx.query.page || 0
+  let pageOptions = {
+    page: currentPage
   }
-  const totalCounts = await getCommentsCount(id)
-  // let result = await commentModel.find({post: id})
-  //                              .populate('author',['userName','avatar'])
-  //                               .sort({createTime: -1})
-  //                              .skip(pageOptions.page*20)
-  //                              .limit(20)
-  //                              .catch(e => ctx.throw(500, e.message))
+  let totalComments = await getCommentsCount(id)
+  let totalPages= Math.ceil(totalComments / 10)
   
-const commentList = await commentModel.aggregate([
+  let commentList = await commentModel.aggregate([
     {$match: {post: mongoose.Types.ObjectId(id)}},
     {$lookup: {
       from: 'usermodels',
@@ -31,17 +27,47 @@ const commentList = await commentModel.aggregate([
       as: 'author'}},
     {$project: {
       post: 1, 'author._id': 1, 'author.userName': 1, 'author.avatar': 1, 
-      content: 1, timeago: {$subtract: [new Date, "$createTime"]} 
+      content: 1, timeago: {$subtract: [new Date, "$createTime"] 
+    } 
     }},
     {$sort: {createTime: -1}},
     {$skip: pageOptions.page*20},
     {$limit: 20}
   ])
+  // get date info like XXX-minutes ago
+  commentList.map(item => {
+    let timeago = item.timeago / 1000
+    if (timeago < 60) return item.timeago = 'just now'
+    timeago = timeago / 60
+    if (timeago < 60) return item.timeago = Math.floor(timeago) +
+       (Math.floor(timeago) === 1 ? ' minute ago' : ' minutes ago')
+    timeago = timeago / 60
+    if(timeago < 24) return item.timeago = Math.floor(timeago) +
+       (Math.floor(timeago) === 1 ? ' hour ago' : ' hours ago')
+    timeago = timeago / 24 
+    if (timeago < 7) return item.timeago = Math.floor(timeago) +
+       (Math.floor(timeago) === 1 ? ' day ago' : ' days ago')
+    timeago = timeago / 7
+    if (timeago < 4) return item.timeago = Math.floor(timeago) +
+       (Math.floor(timeago) === 1 ? ' week ago' : ' weeks ago')
+    timeago = timeago / 4
+    if (timeago < 12) return item.timeago = Math.floor(timeago) +
+       (Math.floor(timeago) === 1 ? ' month ago' : ' months ago')
+    return item._doc.timeago = Math.floor(timeago) +
+       (Math.floor(timeago) === 1 ? ' year ago' : ' years ago')
+  })
+
   console.log(`get comments for post: ${id} success`)
     ctx.body = {
       success: true,
       message: `get comments for post: ${id} success`,
-      comments: Object.assign({}, commentList, {totalCounts})
+      comments: {
+        totalComments,
+        totalPages,
+        currentPage,
+        commentList,
+        
+      }
     }
   })
   // create comment
@@ -56,7 +82,7 @@ const commentList = await commentModel.aggregate([
     if (!content) {
       ctx.throw(400, 'invalid comment')
     } 
-    if(!checkUserLogin(ctx, author)) {
+    if(!checkUserLogin.call(ctx, author)) {
       ctx.throw(400, 'illegal request, user is not logged in!')
     }
     let createTime = new Date
@@ -71,7 +97,7 @@ const commentList = await commentModel.aggregate([
     ctx.body = {
       success: true,
       message: 'create comment success',
-      comment: putComment
+      comment: Object.assign(putComment._doc, {timeago: 'just now'})
     }
   })
   // remove comment
@@ -87,7 +113,7 @@ const commentList = await commentModel.aggregate([
     if (!opts[0]) {
       ctx.throw(404, 'non-exit comment')
     }
-    if(!checkUserLogin(ctx, author)) {
+    if(!checkUserLogin.call(ctx, author)) {
       ctx.throw(400, 'illegal request, user is not logged in!')
     }
     console.log(opts[0])
