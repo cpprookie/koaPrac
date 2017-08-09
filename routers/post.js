@@ -48,6 +48,14 @@ router.get('/post/:id', async ctx => {
     // if  query.author exist, add it as query condition.
     let query = ctx.query.author ?  {'author': ctx.query.author} : {}
     const totalCount = await postModel.count(query).catch(e => ctx.throw(500, e.message))
+    if(totalCount === 0) {
+      return ctx.body = {
+        success: true,
+        message: `get posts on page ${ctx.query.page}`,
+        totalPage: 0,
+        postList: []
+      }
+    }
     const totalPage = Math.ceil(totalCount / 20)
     if(pageOptions.page >= totalPage) {
       ctx.throw(404, 'Not found')
@@ -100,11 +108,12 @@ router.get('/post/:id', async ctx => {
       createTime,
       lastEditTime
     })
-    await newPost.save().catch(e=> ctx.throw(500, 'internal server response'))
+    const createPost = await newPost.save().catch(e=> ctx.throw(500, 'internal server response'))
     console.log('create post success')
     ctx.body = {
       success: true,
-      message: 'create post success'
+      message: 'create post success',
+      createPost
     }
   })
   .post('/user/:userID/post/:postID', async ctx => {
@@ -127,16 +136,16 @@ router.get('/post/:id', async ctx => {
     if(!checkUserLogin.call(ctx, userID)) {
       ctx.throw(400, 'illegal request, user is not logged in!')
     }
-    await postModel
-      .findOneAndUpdate({_id: postID},
-        {$set: {title: editPost.title, content: editPost.content, lastEditTime: new Date}}, {new: true})
-      .exec()
-      .catch(e => {ctx.throw(500, e.message)})
+    const result = await postModel
+                      .findOneAndUpdate({_id: postID},
+                        {$set: {title: editPost.title, content: editPost.content, lastEditTime: new Date}}, {new: true})
+                      .exec()
+                      .catch(e => {ctx.throw(500, e.message)})
     console.log('edit post success')
-    // console.log(result)
     ctx.body = {
       success: true,
-      message: "edit post success"
+      message: "edit post success",
+      editPost: result
     }
   })
   .delete('/user/:userID/post/:postID', async ctx => {

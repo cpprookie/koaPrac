@@ -26,11 +26,13 @@ router.post('/signin', async (ctx,next) => {
     ctx.throw(403, 'incorrect password')
   }
   userId = user._id.toString()
-  if(checkUserLogin.call(ctx, userId)) {
-    ctx.throw(400, `${userName} is online!`)
+  
+  // push user into session
+  if(!checkUserLogin.call(ctx, userId)) {
+    ctx.session.logUserList.push(userId)
   }
-  ctx.session.logUserList.push(userId)
-  console.log(ctx.session.logUserList)
+  
+  // console.log(ctx.session.logUserList)
   console.log('signin success')
   ctx.body = {
     success: true,

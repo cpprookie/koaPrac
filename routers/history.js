@@ -9,7 +9,11 @@ router.get('/user/:userID/history', async ctx => {
                             .sort({lastViewTime: -1})
                             .catch(e => ctx.throw(e.message))
   if (!result) {
-    ctx.throw(404, 'no related record')
+    return ctx.body = {
+      success: true,
+      message: 'get user history success',
+      history: []
+    }
   }
   if(all === 'false' && result.length > 6) {
     ctx.body = {

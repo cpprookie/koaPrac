@@ -16,6 +16,18 @@ router.get('/post/:id/comment', async ctx => {
     page: currentPage
   }
   let totalComments = await getCommentsCount(id)
+  if (totalComments.length === 0) {
+    return ctx.body = {
+      success: true,
+      message: `get comments for post: ${id} success`,
+      comments: {
+        totalComments: 0,
+        totalPages: 0,
+        currentPage: 0,
+        commentList: []
+      }
+    }
+  }
   let totalPages= Math.ceil(totalComments / 10)
   
   let commentList = await commentModel.aggregate([
@@ -65,8 +77,7 @@ router.get('/post/:id/comment', async ctx => {
         totalComments,
         totalPages,
         currentPage,
-        commentList,
-        
+        commentList
       }
     }
   })
@@ -105,7 +116,7 @@ router.get('/post/:id/comment', async ctx => {
     const post = ctx.params.postID
     const commentID = ctx.params.commentID
     const body = await parse.json(ctx.request)
-    const author = body.author
+    const user = body.user
 
     let opts = await commentModel.find({_id: commentID, post:post})
                               .populate('post','author')
@@ -113,13 +124,13 @@ router.get('/post/:id/comment', async ctx => {
     if (!opts[0]) {
       ctx.throw(404, 'non-exit comment')
     }
-    if(!checkUserLogin.call(ctx, author)) {
+    if(!checkUserLogin.call(ctx, user)) {
       ctx.throw(400, 'illegal request, user is not logged in!')
     }
     console.log(opts[0])
     let comment = opts[0]
-    // check author's authozation  post author || comment author
-    if (author !== comment.author.toString() && author !== comment.post.author.toString()) {
+    // check user's authozation  post author || comment author
+    if (user !== comment.author.toString() && user !== comment.post.author.toString()) {
       ctx.throw(400, 'no authority')
     }
     await commentModel.deleteOne({_id: commentID}).catch(e => ctx.throw(500, 'internal server response'))

@@ -7,8 +7,8 @@ var router = require('koa-router')()
 router.put('/signup', async (ctx,next) => {
   const body = await parse.json(ctx.request)
   const userName = body.userName
-  let password = body.password
-  const avatar = body.avatar
+  let password = body.password,
+      avatar = '/images/init.png'
   const createTime = new Date()
   // check user info
   if (userName.length === 0) {
@@ -41,12 +41,7 @@ router.put('/signup', async (ctx,next) => {
   console.log('create user success!')
   ctx.body = {
     success: true,
-    message: 'create user success!',
-    user: {
-      userID: createdUser._id,
-      userName: createdUser.userName,
-      avatar: '../public/test.jpg'
-    }
+    message: 'create user success!'
   }
 })
 

@@ -5,7 +5,7 @@ var router = require('koa-router')()
 var fs = require('fs')
 var path = require('path')
 var checkUserLogin = require('../middleware/checkUserLogin')
-var koaBody = require('koa-body')()
+var koaBody = require('koa-body')({ multipart: true })
 
 router.get('/user/:userID', async ctx => {
   const user = ctx.params.userID
@@ -30,7 +30,7 @@ router.get('/user/:userID', async ctx => {
     if (!result) {
       return ctx.throw(404, 'unexited user')
     }
-    // console.log(ctx.request.body)
+    console.log(ctx.request.body)
     const file = ctx.request.body.files.avatar
     // console.log(file)
     const reader = fs.createReadStream(file.path)
@@ -39,7 +39,7 @@ router.get('/user/:userID', async ctx => {
     const stream = fs.createWriteStream(path.join(__dirname, '../public/images/',`${newFileName}`))
     reader.pipe(stream)
     console.log('uploading %s -> %s', file.name, stream.path)
-    await UserModel.findByIdAndUpdate({_id},{avatar: `images/${newFileName}`})
+    await UserModel.findByIdAndUpdate({_id},{avatar: `/images/${newFileName}`})
     ctx.body = {
       success: 'true',
       message: 'update avatar success',
