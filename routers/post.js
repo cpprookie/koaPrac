@@ -163,9 +163,12 @@ router.get('/post/:id', async ctx => {
       ctx.throw(400, 'illegal request, user is not logged in!')
     }
     await postModel.deleteOne({_id: postID})
-                   .catch(e => ctx.throw(500, 'internal server response'))
+                   .catch(e => ctx.throw(500, e.messge))
+    // delete comments and history relative with post.
     await commentModel.deleteMany({post: postID})
-                      .catch(e => ctx.throw(500, 'internal server response'))
+                      .catch(e => ctx.throw(500, e.message))
+    await History.deleteMany({post: postID})
+                 .catch(e => ctx.throw(500, e.message))
     console.log('delete post success')
     ctx.body = {
       success: true,

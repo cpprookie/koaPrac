@@ -3,7 +3,7 @@ var mongoose = require('mongoose')
 var postModel = require('../models/post')
 var getCommentsCount = require('../middleware/getCommentsCount')
 var parse = require('co-body')
-var router = require('koa-router')()
+var router = require('koa-router')()  
 var checkUserLogin = require('../middleware/checkUserLogin')
 
 router.get('/post/:id/comment', async ctx => {
@@ -43,8 +43,8 @@ router.get('/post/:id/comment', async ctx => {
     } 
     }},
     {$sort: {createTime: -1}},
-    {$skip: pageOptions.page*20},
-    {$limit: 20}
+    {$skip: pageOptions.page*10},
+    {$limit: 10}
   ])
   // get date info like XXX-minutes ago
   commentList.map(item => {
@@ -87,15 +87,12 @@ router.get('/post/:id/comment', async ctx => {
     const body = await parse.json(ctx.request)
     let author = body.comment.author
     let content = body.comment.content
-    /**
-     * @todo check user in session or not
-     */
     if (!content) {
       ctx.throw(400, 'invalid comment')
     } 
-    if(!checkUserLogin.call(ctx, author)) {
-      ctx.throw(400, 'illegal request, user is not logged in!')
-    }
+    // if(!checkUserLogin.call(ctx, author)) {
+    //   ctx.throw(400, 'illegal request, user is not logged in!')
+    // }
     let createTime = new Date
     let comment = new commentModel({
       post,
@@ -115,8 +112,7 @@ router.get('/post/:id/comment', async ctx => {
   .delete('/post/:postID/comment/:commentID', async ctx => {
     const post = ctx.params.postID
     const commentID = ctx.params.commentID
-    const body = await parse.json(ctx.request)
-    const user = body.user
+    const user = ctx.query.user
 
     let opts = await commentModel.find({_id: commentID, post:post})
                               .populate('post','author')
@@ -127,7 +123,7 @@ router.get('/post/:id/comment', async ctx => {
     if(!checkUserLogin.call(ctx, user)) {
       ctx.throw(400, 'illegal request, user is not logged in!')
     }
-    console.log(opts[0])
+    // console.log(opts[0])
     let comment = opts[0]
     // check user's authozation  post author || comment author
     if (user !== comment.author.toString() && user !== comment.post.author.toString()) {

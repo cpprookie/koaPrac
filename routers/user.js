@@ -30,7 +30,7 @@ router.get('/user/:userID', async ctx => {
     if (!result) {
       return ctx.throw(404, 'unexited user')
     }
-    console.log(ctx.request.body)
+    // console.log(ctx.request.body)
     const file = ctx.request.body.files.avatar
     // console.log(file)
     const reader = fs.createReadStream(file.path)
@@ -39,18 +39,27 @@ router.get('/user/:userID', async ctx => {
     const stream = fs.createWriteStream(path.join(__dirname, '../public/images/',`${newFileName}`))
     reader.pipe(stream)
     console.log('uploading %s -> %s', file.name, stream.path)
+
+    const end = new Promise((resolve, reject) => {
+      stream.on('finish', ()=>{resolve('success')})
+      stream.on('error', reject)
+    })
+    const createFileResult = await end
+    // console.log(createFileResult)
+    let filepath = fs.existsSync(path.join(__dirname, '../public/images/',`${newFileName}`))
+    console.log(filepath)
     await UserModel.findByIdAndUpdate({_id},{avatar: `/images/${newFileName}`})
     ctx.body = {
       success: 'true',
       message: 'update avatar success',
-      avatar: `images/${newFileName}`
+      avatar: `/images/${newFileName}`
     }
  })
   .post('/user/:id/account', async ctx => {
+    const _id = ctx.params.id
     if(!checkUserLogin.call(ctx, _id)) {
       return ctx.throw(400, 'you need login first')
     }
-    const _id = ctx.params.id
     const body = await parse.json(ctx.request)
     const password = body.password
     const newPassword = body.newPassword
@@ -62,7 +71,7 @@ router.get('/user/:userID', async ctx => {
     if(!user) {
       ctx.throw(400, 'icorrect password')
     }
-    await UserModel.findOneAndUpdate({_id},{password: sha1(newPassord)})
+    await UserModel.findOneAndUpdate({_id},{password: sha1(newPassword)})
                    .catch(e => ctx.throw(500, 'e.message'))
     ctx.body = {
       success: true,

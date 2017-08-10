@@ -15,12 +15,22 @@ router.get('/user/:userID/history', async ctx => {
       history: []
     }
   }
-  if(all === 'false' && result.length > 6) {
-    ctx.body = {
-      success: true,
-      message: 'get user history success',
-      history: result.slice(0,4)
+  // delete same article browser history
+  if(all === 'false') {
+    let arr = []
+    arr.push(result[0])
+    for (let i = 0, n = result.length; i < n; i++) {
+      for(let j = 0; j < arr.length; j++) {
+        if(result[i].post !== arr[j].post) {
+          arr.push(result[i])
+        }
+      }
     }
+    return ctx.body = {
+        success: true,
+        message: 'get user history success',
+        history: arr
+      }
   }
   ctx.body = {
     success: true,
