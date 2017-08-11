@@ -21,8 +21,10 @@ router.get('/user/:userID/history', async ctx => {
     arr.push(result[0])
     for (let i = 0, n = result.length; i < n; i++) {
       for(let j = 0; j < arr.length; j++) {
-        if(result[i].post !== arr[j].post) {
+        if(result[i].post.title === arr[j].post.title) break
+        else if (j === arr.length - 1) {
           arr.push(result[i])
+          break
         }
       }
     }
