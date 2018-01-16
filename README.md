@@ -7,9 +7,9 @@ This repo is blog system server part and you can find client part at [reactblog]
 
 ## run this project
 ---
-- You need to have mongodb on your pc and port is `27017`. you can change port by edit `config/index.js`
+- You need to have mongodb running on your pc and port is `27017`. you can change port by edit `config/index.js`
 - `npm install` 
-- `node ./index`
+- `npm start`
 - open your browser at `localhost:3001`. 
 
 Welcome for pull request and issues, have fun :)
